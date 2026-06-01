@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/axiosConfig';
 
 interface Actividad {
   id: number;
@@ -17,7 +17,7 @@ export default function ActividadesCRUD() {
   const [puntos, setPuntos] = useState(10);
   const [editandoId, setEditandoId] = useState<number | null>(null);
 
-  const API_URL = 'http://localhost:3000/api/actividades';
+  const API_URL = '/actividades';
   // Recuperamos el token para las peticiones protegidas
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -27,7 +27,7 @@ export default function ActividadesCRUD() {
 
   const cargarActividades = async () => {
     try {
-        const res = await axios.get(API_URL, { headers });
+        const res = await api.get(API_URL, { headers });
         console.log("Datos recibidos del GET:", res.data);
         setError(null);
 
@@ -54,11 +54,11 @@ export default function ActividadesCRUD() {
     try {
       if (editandoId) {
         // Actualizar
-        await axios.put(`${API_URL}/${editandoId}`, { nombre, descripcion, puntos }, { headers });
+        await api.put(`${API_URL}/${editandoId}`, { nombre, descripcion, puntos }, { headers });
         setEditandoId(null);
       } else {
         // Crear
-        await axios.post(API_URL, { nombre, descripcion, puntos }, { headers });
+        await api.post(API_URL, { nombre, descripcion, puntos }, { headers });
       }
       setNombre(''); setDescripcion(''); setPuntos(10);
       cargarActividades();
@@ -71,7 +71,7 @@ export default function ActividadesCRUD() {
   const handleEliminar = async (id: number) => {
     if (window.confirm('¿Seguro que deseas eliminar esta actividad?')) {
       try {
-        await axios.delete(`${API_URL}/${id}`, { headers });
+        await api.delete(`${API_URL}/${id}`, { headers });
         cargarActividades();
       } catch (err) {
         alert("Error al eliminar. Verifica tus permisos.");

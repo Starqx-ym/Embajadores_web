@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../config/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, AlertCircle } from 'lucide-react';
 
@@ -12,12 +12,11 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 🟢 Usamos 'axios' con tu URL local directa para asegurar que no falle por importación
-      const response = await axios.post('http://localhost:3000/api/auth/login', { email, password });
-      
-      console.log("Respuesta del servidor:", response.data);
+        const response = await api.post('/auth/login', { email, password });
 
-      if (response.status === 200 || response.data.token) {
+        console.log("Respuesta del servidor:", response.data);
+
+        if (response.status === 200 || response.data.token) {
           const { token, user } = response.data;
 
           // Guardar el token de forma síncrona en el navegador
@@ -33,11 +32,13 @@ export default function Login() {
           }, 100);
       }
     } catch (error: any) {
+      // Si el interceptor detecta un 5xx o error de red, redirigirá a /server-error.
       if (error.response) {
-          console.error("Error 401 u otro desde el backend:", error.response.data.error);
-          alert(error.response.data.error);
+          console.error("Error desde el backend:", error.response.data?.error || error.response.statusText);
+          setError(error.response.data?.error || 'Credenciales incorrectas');
       } else {
           console.error("Error de conexión:", error.message);
+          setError('No se pudo conectar con el servidor.');
       }
     }
   };

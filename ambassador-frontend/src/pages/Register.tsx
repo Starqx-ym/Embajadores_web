@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import api from '../config/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -13,13 +14,14 @@ export default function Register() {
     e.preventDefault();
     setMessage(null);
     try {
-      const res = await axios.post('http://localhost:3000/api/auth/register', { email, password });
+      const res = await api.post('/auth/register', { email, password });
       if (res.status === 201) {
-        setMessage({ text: '✅ ¡Registro exitoso con Bcrypt! Redirigiendo al login...', isError: false });
+        setMessage({ text: '✅ ¡Registro exitoso! Redirigiendo al login...', isError: false });
         setTimeout(() => navigate('/login'), 2500);
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || 'Error al procesar el registro.';
+      // Si el interceptor captura un 5xx o fallo de red, redirigirá a /server-error.
+      const errorMsg = err.response?.data?.error || err.message || 'Error al procesar el registro.';
       setMessage({ text: `❌ ${errorMsg}`, isError: true });
     }
   };

@@ -12,7 +12,15 @@ api.interceptors.response.use(
     if (!error.response) {
       // Redirigir físicamente a la pantalla de error de servidor
       window.location.href = '/server-error';
+      return Promise.reject(error);
     }
+
+    // Si el backend responde con un error 5xx, tratamos como caída del servidor
+    if (error.response && error.response.status >= 500) {
+      window.location.href = '/server-error';
+      return Promise.reject(error);
+    }
+
     return Promise.reject(error);
   }
 );
