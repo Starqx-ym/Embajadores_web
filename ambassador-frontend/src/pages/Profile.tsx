@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Profile() {
   const userRaw = localStorage.getItem('user');
   const user = userRaw ? JSON.parse(userRaw) : { email: '-', role: '-' };
