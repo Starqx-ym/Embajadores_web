@@ -6,7 +6,7 @@ import activityRoutes from './routes/activityRoutes';
 import cors from 'cors';
 
 const app = express();
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://18.208.221.134', 'http://TU_DOMINIO'];
 
 app.use(cors({
   origin: (origin, callback) => {
