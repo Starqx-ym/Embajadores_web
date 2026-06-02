@@ -4,7 +4,10 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
+import Profile from './pages/Profile';
 import ServerError from './pages/ServerError';
+import ActivitiesView from './pages/ActivitiesView';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -22,11 +25,14 @@ function App() {
         {/* Si un usuario intenta escribir manualmente /dashboard en la URL sin token, 
             este componente lo interceptará y lo expulsará de inmediato al /login */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          
-          {/* Aquí podrás colgar tus futuras páginas privadas del CRUD, por ejemplo:
-              <Route path="/actividades" element={<Actividades />} /> 
-          */}
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route index element={<Navigate to="actividades" replace />} />
+            <Route path="actividades" element={<ActivitiesView />} />
+            <Route path="profile" element={<Profile />} />
+            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+              <Route path="admin" element={<AdminDashboard />} />
+            </Route>
+          </Route>
         </Route>
         
         {/* Capturar cualquier otra ruta como error 404 visual */}

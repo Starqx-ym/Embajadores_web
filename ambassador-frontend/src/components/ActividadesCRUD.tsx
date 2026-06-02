@@ -87,53 +87,80 @@ export default function ActividadesCRUD() {
   };
 
   return (
-    <div style={{ padding: '20px', background: '#fff', borderRadius: '8px', marginTop: '20px' }}>
-      <h2>🛡️ Panel de Gestión de Actividades (CRUD)</h2>
-      
-      {/* Formulario */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input type="text" placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} required />
-        <input type="text" placeholder="Descripción" value={descripcion} onChange={e => setDescripcion(e.target.value)} required />
-        <input type="number" placeholder="Puntos" value={puntos} onChange={e => setPuntos(Number(e.target.value))} required />
-        <button type="submit" style={{ background: editandoId ? '#f1c40f' : '#2ecc71', color: '#fff', border: 'none', padding: '8px 15px', cursor: 'pointer' }}>
+    <div className="section-card" style={{ marginTop: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Panel de Gestión de Actividades</h2>
+          <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>Crea, edita y elimina actividades desde un panel moderno.</p>
+        </div>
+        <button className="btn-primary" type="submit" form="actividad-form" style={{ width: 'auto', padding: '11px 22px' }}>
           {editandoId ? 'Actualizar' : 'Crear Actividad'}
         </button>
-        {editandoId && <button onClick={() => { setEditandoId(null); setNombre(''); setDescripcion(''); }}>Cancelar</button>}
+      </div>
+
+      <form id="actividad-form" onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '14px', marginTop: 22 }}>
+        <input className="auth-input" type="text" placeholder="Nombre" value={nombre} onChange={e => setNombre(e.target.value)} required />
+        <input className="auth-input" type="text" placeholder="Descripción" value={descripcion} onChange={e => setDescripcion(e.target.value)} required />
+        <input className="auth-input" type="number" placeholder="Puntos" value={puntos} onChange={e => setPuntos(Number(e.target.value))} required />
+        {editandoId && (
+          <button type="button" className="btn-primary" style={{ background: '#9ca3af', width: '100%' }} onClick={() => { setEditandoId(null); setNombre(''); setDescripcion(''); }}>
+            Cancelar
+          </button>
+        )}
       </form>
 
-      {/* Tabla de Datos */}
-      {error && <div style={{ marginBottom: '10px', color: '#c0392b' }}>{error}</div>}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-        <thead>
-          <tr style={{ background: '#eee', textAlign: 'left' }}>
-            <th style={{ padding: '10px' }}>ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Puntos</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {actividades.length === 0 ? (
+      {error && <div style={{ marginTop: 18, color: '#c0392b' }}>{error}</div>}
+
+      <div className="table-card" style={{ marginTop: 24 }}>
+        <table>
+          <thead>
             <tr>
-              <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#7f8c8d' }}>
-                No se encontraron actividades.
-              </td>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Puntos</th>
+              <th>Acciones</th>
             </tr>
-          ) : actividades.map(act => (
-            <tr key={act.id} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '10px' }}>{act.id}</td>
-              <td>{act.nombre ?? act.titulo ?? '-'}</td>
-              <td>{act.descripcion ?? '-'}</td>
-              <td><span style={{ background: '#e1f5fe', padding: '3px 8px', borderRadius: '5px' }}>{(act.puntos ?? act.puntos_otorgados ?? 0)} pts</span></td>
-              <td>
-                <button onClick={() => empezarEdicion(act)} style={{ marginRight: '5px', background: '#3498db', color: '#fff', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>Editar</button>
-                <button onClick={() => handleEliminar(act.id)} style={{ background: '#e74c3c', color: '#fff', border: 'none', padding: '5px 10px', cursor: 'pointer' }}>Eliminar</button>
-              </td>
-            </tr>
+          </thead>
+          <tbody>
+            {actividades.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>
+                  No se encontraron actividades.
+                </td>
+              </tr>
+            ) : actividades.map(act => (
+              <tr key={act.id}>
+                <td>{act.id}</td>
+                <td>{act.nombre ?? act.titulo ?? '-'}</td>
+                <td>{act.descripcion ?? '-'}</td>
+                <td><span className="badge">{(act.puntos ?? act.puntos_otorgados ?? 0)} pts</span></td>
+                <td style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-edit" onClick={() => empezarEdicion(act)}>Editar</button>
+                  <button className="btn-delete" onClick={() => handleEliminar(act.id)}>Eliminar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Tarjetas responsivas para móvil */}
+        <div className="activities-cards">
+          {actividades.map(act => (
+            <div key={act.id} className="activity-card">
+              <h4>{act.nombre ?? act.titulo ?? `Actividad ${act.id}`}</h4>
+              <p>{act.descripcion ?? '-'}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="badge">{(act.puntos ?? act.puntos_otorgados ?? 0)} pts</div>
+                <div className="actions">
+                  <button className="btn-edit" onClick={() => empezarEdicion(act)}>Editar</button>
+                  <button className="btn-delete" onClick={() => handleEliminar(act.id)}>Eliminar</button>
+                </div>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
   );
 }

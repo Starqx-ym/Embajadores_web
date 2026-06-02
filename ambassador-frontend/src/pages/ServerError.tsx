@@ -32,9 +32,9 @@ export default function ServerError() {
           <div className="text-slate">Estamos trabajando para resolverlo. Puedes intentar reconectar o contactar al equipo de soporte si el problema persiste.</div>
 
           <div className="error-actions">
-            <button className="btn-retry" onClick={handleRetry}>🔄 Reintentar</button>
-            <button className="btn-secondary" onClick={handleHome}>🏠 Volver al Dashboard</button>
-            <a className="btn-secondary" href="mailto:soporte@embajadores.edu?subject=Error%20Servicio%20API" rel="noreferrer">✉️ Reportar</a>
+            <button className="btn-retry" onClick={handleRetry}>Reintentar</button>
+            <button className="btn-secondary" onClick={handleHome}>Volver al Dashboard</button>
+            <a className="btn-secondary" href="mailto:soporte@embajadores.edu?subject=Error%20Servicio%20API" rel="noreferrer">Reportar</a>
           </div>
 
           <div className="error-meta">

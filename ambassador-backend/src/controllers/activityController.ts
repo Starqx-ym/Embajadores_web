@@ -102,4 +102,28 @@ export const activityController = {
       return res.status(500).json({ error: 'Error al eliminar actividad.' });
     }
   }
+
+  // 5. ENROLL / INSCRIBIR
+  ,enroll: async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Usuario no autenticado.' });
+
+    try {
+      // Intentar decrementar cupos de forma segura
+      const updateResult = await pool.query(
+        `UPDATE actividades SET cupos_disponibles = cupos_disponibles - 1 WHERE id = $1 AND cupos_disponibles > 0 RETURNING *`,
+        [id]
+      );
+
+      if (updateResult.rowCount === 0) {
+        return res.status(400).json({ error: 'No hay cupos disponibles para esta actividad.' });
+      }
+
+      return res.status(200).json({ message: 'Inscripción realizada correctamente.' });
+    } catch (error: any) {
+      console.error('Enroll error', error);
+      return res.status(500).json({ error: 'Error al procesar la inscripción.' });
+    }
+  }
 };

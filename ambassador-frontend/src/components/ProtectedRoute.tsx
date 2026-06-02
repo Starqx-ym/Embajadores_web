@@ -15,8 +15,12 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   // Si la ruta pide roles específicos y el usuario no los tiene, bloquea el paso
-  if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles) {
+    const normalized = allowedRoles.map(r => String(r).toLowerCase());
+    const userRole = user && user.role ? String(user.role).toLowerCase() : undefined;
+    if (!userRole || !normalized.some(r => userRole === r || userRole.includes(r) || r.includes(userRole))) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   // Si pasa los controles, renderiza la subruta del enrutador

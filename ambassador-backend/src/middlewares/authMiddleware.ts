@@ -40,8 +40,17 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
 // Middleware para autorizar múltiples tipos de usuarios (Roles)
 export const grantAccess = (allowedRoles: string[]) => {
+  const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    const userRole = req.user && req.user.role ? String(req.user.role).toLowerCase() : undefined;
+    if (!userRole) {
+      return res.status(403).json({ error: 'Acceso prohibido. No tiene los permisos requeridos.' });
+    }
+
+    // Aceptar coincidencias directas o parciales para cubrir variantes como
+    // 'administrador' vs 'admin' o diferencias de idiomas/casing.
+    const allowed = normalizedAllowed.some(ar => userRole === ar || userRole.includes(ar) || ar.includes(userRole));
+    if (!allowed) {
       return res.status(403).json({ error: 'Acceso prohibido. No tiene los permisos requeridos.' });
     }
     next();

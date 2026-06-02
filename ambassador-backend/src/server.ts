@@ -11,7 +11,7 @@ if (cluster.isPrimary) {
   console.log(`🚀 Servidor Principal (Primary) corriendo en PID: ${process.pid}`);
   console.log(`🛠️ Detectados ${numCPUs} núcleos. Creando sub-procesos trabajadores (Workers)...`);
 
-  // Clonar el servidor en cada núcleo del procesador
+
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
