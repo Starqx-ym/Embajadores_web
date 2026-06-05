@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest --runInBand --detectOpenHandles",
+    "stress": "node scripts/stress-test.js",
     "db:backup": "node backup.js"
   },
   "keywords": [],
