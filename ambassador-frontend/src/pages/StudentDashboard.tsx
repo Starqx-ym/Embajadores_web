@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Clock, Trophy } from 'lucide-react';
 import api from '../config/axiosConfig';
 
 interface Actividad {
@@ -9,21 +10,45 @@ interface Actividad {
   puntos?: number;
   puntos_otorgados?: number;
   cupos_disponibles?: number;
+  fecha_evento?: string;
+  estado?: string;
+}
+
+interface Enrollment {
+  actividad_id: number;
+}
+
+interface RankingUser {
+  id: number;
+  email: string;
+  points: number;
 }
 
 export default function StudentDashboard() {
   const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [ranking, setRanking] = useState<RankingUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const enrolledIds = useMemo(() => new Set(enrollments.map(item => item.actividad_id)), [enrollments]);
 
   const cargar = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/actividades', { headers });
-      setActividades(Array.isArray(res.data) ? res.data : (res.data.data || []));
+      const [activitiesRes, profileRes, rankingRes] = await Promise.all([
+        api.get('/actividades', { headers }),
+        api.get('/users/me', { headers }),
+        api.get('/users/ranking', { headers })
+      ]);
+
+      setActividades(Array.isArray(activitiesRes.data) ? activitiesRes.data : (activitiesRes.data.data || []));
+      setEnrollments(profileRes.data?.enrollments || []);
+      setRanking(Array.isArray(rankingRes.data) ? rankingRes.data : []);
     } catch (err) {
-      console.error('Error cargando actividades', err);
+      console.error('Error cargando panel de actividades', err);
       setActividades([]);
     } finally {
       setLoading(false);
@@ -32,54 +57,80 @@ export default function StudentDashboard() {
 
   useEffect(() => { cargar(); }, []);
 
-  const saveEnrollment = (id: number) => {
-    const existing = JSON.parse(localStorage.getItem('enrolledActivities') || '[]') as number[];
-    if (!existing.includes(id)) {
-      existing.push(id);
-      localStorage.setItem('enrolledActivities', JSON.stringify(existing));
-    }
-  };
-
   const handleInscribir = async (id: number) => {
     try {
       await api.post(`/actividades/${id}/inscribir`, {}, { headers });
-      saveEnrollment(id);
-      alert('Inscripción confirmada.');
+      setMessage('Inscripcion confirmada. La actividad ya aparece en tu historial.');
       cargar();
     } catch (err: any) {
       const msg = err?.response?.data?.error || err.message || 'Error al inscribir';
-      alert(msg);
+      setMessage(msg);
     }
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ color: 'var(--morado)', marginBottom: 12 }}>Actividades disponibles</h2>
-      {loading ? <div>Cargando...</div> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
-          {actividades.length === 0 ? (
-            <div style={{ padding: 20, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12 }}>No hay actividades disponibles.</div>
-          ) : actividades.map(act => (
-            <div key={act.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-              <h3 style={{ margin: 0, color: 'var(--celeste-dark)' }}>{act.nombre ?? act.titulo}</h3>
-              <p style={{ color: 'var(--muted)' }}>{act.descripcion}</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                <div style={{ fontWeight: 700, color: 'var(--morado-dark)' }}>{(act.puntos ?? act.puntos_otorgados ?? 0)} pts</div>
-                <div style={{ color: 'var(--muted)' }}>Cupos: {act.cupos_disponibles ?? 'N/A'}</div>
-              </div>
-              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => handleInscribir(act.id)}
-                  disabled={(act.cupos_disponibles ?? 0) <= 0}
-                  style={{ flex: 1, background: 'linear-gradient(90deg,var(--celeste),var(--morado))', color: 'white', border: 'none', padding: '10px 12px', borderRadius: 8, cursor: 'pointer' }}
-                >
-                  Inscribirse
-                </button>
+    <div className="content-grid">
+      <section className="panel-span">
+        <div className="toolbar">
+          <div>
+            <h2>Catalogo de actividades</h2>
+            <p>Consulta cupos, puntos e inscribete sin entrar al modo de administracion.</p>
+          </div>
+          {message && <span className="status-note">{message}</span>}
+        </div>
+
+        {loading ? <div className="empty-state">Cargando actividades...</div> : (
+          <div className="activity-grid">
+            {actividades.length === 0 ? (
+              <div className="empty-state">No hay actividades disponibles.</div>
+            ) : actividades.map(act => {
+              const points = act.puntos ?? act.puntos_otorgados ?? 0;
+              const cupos = act.cupos_disponibles ?? 0;
+              const enrolled = enrolledIds.has(act.id);
+
+              return (
+                <article key={act.id} className="activity-card-pro">
+                  <div className="activity-card-top">
+                    <span className="badge-soft">{act.estado ?? 'activo'}</span>
+                    <strong>{points} pts</strong>
+                  </div>
+                  <h3>{act.nombre ?? act.titulo ?? `Actividad ${act.id}`}</h3>
+                  <p>{act.descripcion || 'Sin descripcion registrada.'}</p>
+                  <div className="activity-meta">
+                    <span><Clock size={15} /> {act.fecha_evento ? new Date(act.fecha_evento).toLocaleDateString() : 'Fecha por definir'}</span>
+                    <span>Cupos: {cupos}</span>
+                  </div>
+                  <button
+                    className="btn-primary"
+                    onClick={() => handleInscribir(act.id)}
+                    disabled={enrolled || cupos <= 0}
+                  >
+                    {enrolled ? <><CheckCircle2 size={17} /> Inscrito</> : 'Inscribirse'}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <aside className="side-panel">
+        <div className="panel-title">
+          <Trophy size={19} />
+          <h2>Ranking</h2>
+        </div>
+        <div className="ranking-list">
+          {ranking.length === 0 ? <p className="muted">Aun no hay ranking.</p> : ranking.slice(0, 6).map((user, index) => (
+            <div key={user.id} className="ranking-row">
+              <span>{index + 1}</span>
+              <div>
+                <strong>{user.email}</strong>
+                <small>{user.points} pts</small>
               </div>
             </div>
           ))}
         </div>
-      )}
+      </aside>
     </div>
   );
 }

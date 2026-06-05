@@ -1,65 +1,98 @@
+import { useEffect, useState } from 'react';
+import { Award, CalendarCheck, Trophy } from 'lucide-react';
+import api from '../config/axiosConfig';
+
+interface ProfileData {
+  user?: {
+    email: string;
+    role: string;
+    points: number;
+  };
+  enrollments: Array<{
+    id: number;
+    actividad_id: number;
+    nombre: string;
+    descripcion: string;
+    puntos: number;
+    status: string;
+    enrolled_at: string;
+  }>;
+}
+
+interface RankingUser {
+  id: number;
+  email: string;
+  points: number;
+}
+
 export default function Profile() {
   const userRaw = localStorage.getItem('user');
-  const user = userRaw ? JSON.parse(userRaw) : { email: '-', role: '-' };
+  const fallbackUser = userRaw ? JSON.parse(userRaw) : { email: '-', role: '-' };
+  const [profile, setProfile] = useState<ProfileData>({ enrollments: [] });
+  const [ranking, setRanking] = useState<RankingUser[]>([]);
+  const token = localStorage.getItem('token');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const enrolled = JSON.parse(localStorage.getItem('enrolledActivities') || '[]') as number[];
+  useEffect(() => {
+    Promise.all([
+      api.get('/users/me', { headers }),
+      api.get('/users/ranking', { headers })
+    ]).then(([profileRes, rankingRes]) => {
+      setProfile({ user: profileRes.data.user, enrollments: profileRes.data.enrollments || [] });
+      setRanking(Array.isArray(rankingRes.data) ? rankingRes.data : []);
+    }).catch(console.error);
+  }, []);
+
+  const user = profile.user || fallbackUser;
+  const position = ranking.findIndex(item => item.email === user.email) + 1;
 
   return (
     <div className="profile-page">
-      <div className="profile-header">
-        <div className="profile-avatar" />
+      <section className="profile-header">
+        <div className="profile-avatar"><Award size={42} /></div>
         <div className="profile-info">
-          <p style={{ margin: 0, textTransform: 'uppercase', color: 'var(--morado)', fontWeight: 700, letterSpacing: '0.12em' }}>Embajador</p>
+          <p>{user.role}</p>
           <h2>{user.email}</h2>
-          <p style={{ margin: '10px 0 0', color: 'var(--muted)' }}>Rol: {user.role}</p>
+          <span>Perfil actualizado con inscripciones y puntos reales.</span>
         </div>
-      </div>
+      </section>
 
       <div className="profile-stats">
-        <div className="profile-stat-card">
-          <div>
-            <h3>Puntos</h3>
-            <p>-- pts</p>
-          </div>
-        </div>
-        <div className="profile-stat-card">
-          <div>
-            <h3>Inscripciones</h3>
-            <p>{enrolled.length}</p>
-          </div>
-        </div>
-        <div className="profile-stat-card">
-          <div>
-            <h3>Beneficios</h3>
-            <p>Activos</p>
-          </div>
-        </div>
+        <div className="profile-stat-card"><Award size={22} /><h3>Puntos</h3><p>{user.points ?? 0} pts</p></div>
+        <div className="profile-stat-card"><CalendarCheck size={22} /><h3>Inscripciones</h3><p>{profile.enrollments.length}</p></div>
+        <div className="profile-stat-card"><Trophy size={22} /><h3>Ranking</h3><p>{position > 0 ? `#${position}` : '--'}</p></div>
       </div>
 
       <div className="profile-grid">
         <div className="section-card">
           <h3>Actividades inscritas</h3>
-          <p style={{ color: 'var(--muted)', margin: '12px 0 18px' }}>Aquí verás las actividades en las que estás inscrito.</p>
-          {enrolled.length > 0 ? (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {enrolled.map(id => (
-                <span key={id} className="activity-pill">Actividad #{id}</span>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--muted)' }}>Aún no te has inscrito a ninguna actividad.</p>
-          )}
+          <div className="history-list">
+            {profile.enrollments.length > 0 ? profile.enrollments.map(item => (
+              <div key={item.id} className="history-item">
+                <div>
+                  <strong>{item.nombre}</strong>
+                  <small>{new Date(item.enrolled_at).toLocaleDateString()} · {item.status}</small>
+                </div>
+                <span>{item.puntos} pts</span>
+              </div>
+            )) : <p className="muted">Aun no te has inscrito a ninguna actividad.</p>}
+          </div>
         </div>
 
         <div className="section-card">
-          <h3>Beneficios y premios</h3>
-          <p style={{ color: 'var(--muted)' }}>Gana recompensas al completar actividades. Tu perfil se actualiza con puntos y beneficios.</p>
+          <h3>Ranking de embajadores</h3>
+          <div className="ranking-list">
+            {ranking.slice(0, 8).map((item, index) => (
+              <div key={item.id} className="ranking-row">
+                <span>{index + 1}</span>
+                <div>
+                  <strong>{item.email}</strong>
+                  <small>{item.points} pts</small>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className="section-card">
-        <h3>Rankings</h3>
-        <p style={{ color: 'var(--muted)' }}>Próximamente podrás comparar tu desempeño con otros embajadores.</p>
       </div>
     </div>
   );

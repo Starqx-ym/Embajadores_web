@@ -3,6 +3,7 @@ import path from 'path';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
 import activityRoutes from './routes/activityRoutes';
+import userRoutes from './routes/userRoutes';
 import { apiLimiter } from './middlewares/rateLimiter';
 
 const app = express();
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', apiLimiter, authRoutes);
 app.use('/api/actividades', activityRoutes);
+app.use('/api/users', userRoutes);
 
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));

@@ -29,7 +29,7 @@ function App() {
             <Route index element={<Navigate to="actividades" replace />} />
             <Route path="actividades" element={<ActivitiesView />} />
             <Route path="profile" element={<Profile />} />
-            <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={["admin", "coordinador"]} />}>
               <Route path="admin" element={<AdminDashboard />} />
             </Route>
           </Route>
