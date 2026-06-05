@@ -144,5 +144,42 @@ export const userController = {
       console.error('Ranking error', error);
       return res.status(500).json({ error: error.message || 'Error al obtener ranking.' });
     }
+  },
+
+  notifications: async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(`
+        SELECT
+          cn.*,
+          u.email,
+          COALESCE(a.nombre, a.titulo) AS actividad
+        FROM public.coordinator_notifications cn
+        LEFT JOIN public.users u ON u.id = cn.user_id
+        LEFT JOIN public.actividades a ON a.id = cn.actividad_id
+        ORDER BY cn.created_at DESC
+        LIMIT 50
+      `);
+
+      return res.status(200).json(result.rows);
+    } catch (error: any) {
+      console.error('Notifications error', error);
+      return res.status(500).json({ error: error.message || 'Error al obtener buzon.' });
+    }
+  },
+
+  markNotificationRead: async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+      await pool.query(
+        'UPDATE public.coordinator_notifications SET read_at = NOW() WHERE id = $1',
+        [id]
+      );
+
+      return res.status(200).json({ message: 'Notificacion marcada como leida.' });
+    } catch (error: any) {
+      console.error('Mark notification error', error);
+      return res.status(500).json({ error: error.message || 'Error al actualizar buzon.' });
+    }
   }
 };

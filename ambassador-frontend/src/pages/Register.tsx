@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../config/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
@@ -9,36 +9,41 @@ export default function Register() {
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      navigate('/dashboard/actividades', { replace: true });
+    }
+  }, [navigate]);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
     try {
       const res = await api.post('/auth/register', { email, password });
       if (res.status === 201) {
-        setMessage({ text: '✅ ¡Registro exitoso! Redirigiendo al login...', isError: false });
-        setTimeout(() => navigate('/login'), 2500);
+        setMessage({ text: 'Registro exitoso. Redirigiendo al login...', isError: false });
+        setTimeout(() => navigate('/login'), 1800);
       }
     } catch (err: any) {
-      // Si el interceptor captura un 5xx o fallo de red, redirigirá a /server-error.
       const errorMsg = err.response?.data?.error || err.message || 'Error al procesar el registro.';
-      setMessage({ text: `❌ ${errorMsg}`, isError: true });
+      setMessage({ text: errorMsg, isError: true });
     }
   };
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <UserPlus size={40} color="#10b981" style={{ margin: '0 auto' }} />
+        <UserPlus size={40} color="#7c3aed" style={{ margin: '0 auto' }} />
         <h2 className="auth-title">Crear Cuenta</h2>
-        
+
         <form onSubmit={handleRegister} className="auth-form">
           <label className="auth-label">Email Institucional</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="auth-input" placeholder="ejemplo@universidad.edu" required />
-          
-          <label className="auth-label">Contraseña</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="auth-input" placeholder="Mínimo 6 caracteres" required />
-          
-          <button type="submit" className="btn-green">Registrar</button>
+
+          <label className="auth-label">Contrasena</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="auth-input" placeholder="Minimo 6 caracteres" required />
+
+          <button type="submit" className="btn-blue">Registrar</button>
         </form>
 
         {message && (
@@ -47,9 +52,9 @@ export default function Register() {
             <span>{message.text}</span>
           </div>
         )}
-        
+
         <p className="auth-link-text">
-          ¿Ya tienes cuenta? <Link to="/login" className="auth-link">Inicia sesión</Link>
+          Ya tienes cuenta? <Link to="/login" className="auth-link">Inicia sesion</Link>
         </p>
       </div>
     </div>

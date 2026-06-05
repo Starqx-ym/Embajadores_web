@@ -19,10 +19,21 @@ interface UserRow {
   points: number;
 }
 
+interface NotificationRow {
+  id: number;
+  email?: string;
+  actividad?: string;
+  message: string;
+  reason?: string;
+  read_at?: string | null;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
-  const [tab, setTab] = useState<'actividades' | 'usuarios' | 'puntos'>('actividades');
+  const [tab, setTab] = useState<'actividades' | 'usuarios' | 'puntos' | 'buzon'>('actividades');
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [usuarios, setUsuarios] = useState<UserRow[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [points, setPoints] = useState(10);
   const [notice, setNotice] = useState<string | null>(null);
@@ -45,6 +56,9 @@ export default function AdminDashboard() {
       const rankingRes = await api.get('/users/ranking', { headers });
       setUsuarios(Array.isArray(rankingRes.data) ? rankingRes.data : []);
     }
+
+    const notificationsRes = await api.get('/users/notifications', { headers });
+    setNotifications(Array.isArray(notificationsRes.data) ? notificationsRes.data : []);
   };
 
   useEffect(() => { cargar().catch(console.error); }, []);
@@ -72,6 +86,11 @@ export default function AdminDashboard() {
     cargar();
   };
 
+  const markRead = async (id: number) => {
+    await api.put(`/users/notifications/${id}/read`, {}, { headers });
+    cargar();
+  };
+
   return (
     <div className="admin-page">
       <div className="card-grid">
@@ -84,6 +103,7 @@ export default function AdminDashboard() {
         <button className={tab === 'actividades' ? 'active' : ''} onClick={() => setTab('actividades')}>Actividades</button>
         {isAdmin && <button className={tab === 'usuarios' ? 'active' : ''} onClick={() => setTab('usuarios')}>Usuarios</button>}
         <button className={tab === 'puntos' ? 'active' : ''} onClick={() => setTab('puntos')}>Puntos</button>
+        <button className={tab === 'buzon' ? 'active' : ''} onClick={() => setTab('buzon')}>Buzon</button>
       </div>
 
       {notice && <div className="status-note">{notice}</div>}
@@ -141,6 +161,25 @@ export default function AdminDashboard() {
             </select>
             <input className="auth-input" type="number" value={points} onChange={event => setPoints(Number(event.target.value))} />
             <button className="btn-primary" onClick={awardPoints}>Asignar</button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'buzon' && (
+        <div className="section-card">
+          <h2>Buzon de coordinacion</h2>
+          <p className="muted">Avisos de embajadores que se desinscriben de actividades.</p>
+          <div className="notification-list">
+            {notifications.length === 0 ? <p className="muted">No hay avisos pendientes.</p> : notifications.map(item => (
+              <div key={item.id} className={`notification-item ${item.read_at ? 'read' : ''}`}>
+                <div>
+                  <strong>{item.email || 'Embajador'} · {item.actividad || 'Actividad'}</strong>
+                  <p>{item.message}</p>
+                  <small>Motivo: {item.reason || '-'} · {new Date(item.created_at).toLocaleString()}</small>
+                </div>
+                {!item.read_at && <button className="btn-secondary-light" onClick={() => markRead(item.id)}>Marcar leido</button>}
+              </div>
+            ))}
           </div>
         </div>
       )}

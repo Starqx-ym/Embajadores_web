@@ -30,10 +30,13 @@ export default function Profile() {
   const fallbackUser = userRaw ? JSON.parse(userRaw) : { email: '-', role: '-' };
   const [profile, setProfile] = useState<ProfileData>({ enrollments: [] });
   const [ranking, setRanking] = useState<RankingUser[]>([]);
+  const [unsubscribeId, setUnsubscribeId] = useState<number | null>(null);
+  const [reason, setReason] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-  useEffect(() => {
+  const load = () => {
     Promise.all([
       api.get('/users/me', { headers }),
       api.get('/users/ranking', { headers })
@@ -41,7 +44,22 @@ export default function Profile() {
       setProfile({ user: profileRes.data.user, enrollments: profileRes.data.enrollments || [] });
       setRanking(Array.isArray(rankingRes.data) ? rankingRes.data : []);
     }).catch(console.error);
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleDesinscribir = async () => {
+    if (!unsubscribeId) return;
+    try {
+      await api.post(`/actividades/${unsubscribeId}/desinscribir`, { reason }, { headers });
+      setMessage('Desinscripcion enviada al coordinador.');
+      setUnsubscribeId(null);
+      setReason('');
+      load();
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error || 'No se pudo registrar la desinscripcion.');
+    }
+  };
 
   const user = profile.user || fallbackUser;
   const position = ranking.findIndex(item => item.email === user.email) + 1;
@@ -66,6 +84,7 @@ export default function Profile() {
       <div className="profile-grid">
         <div className="section-card">
           <h3>Actividades inscritas</h3>
+          {message && <div className="alert-inline neutral-alert">{message}</div>}
           <div className="history-list">
             {profile.enrollments.length > 0 ? profile.enrollments.map(item => (
               <div key={item.id} className="history-item">
@@ -73,7 +92,11 @@ export default function Profile() {
                   <strong>{item.nombre}</strong>
                   <small>{new Date(item.enrolled_at).toLocaleDateString()} · {item.status}</small>
                 </div>
-                <span>{item.puntos} pts</span>
+                {item.status === 'inscrito' ? (
+                  <button className="btn-secondary-light" onClick={() => setUnsubscribeId(item.actividad_id)}>Desinscribirse</button>
+                ) : (
+                  <span>{item.status}</span>
+                )}
               </div>
             )) : <p className="muted">Aun no te has inscrito a ninguna actividad.</p>}
           </div>
@@ -94,6 +117,20 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {unsubscribeId && (
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2>Motivo de desinscripcion</h2>
+            <p className="muted">El coordinador recibira este aviso en su buzon.</p>
+            <textarea className="auth-input text-area" value={reason} onChange={event => setReason(event.target.value)} placeholder="Explica brevemente el motivo" />
+            <div className="modal-actions">
+              <button className="btn-secondary-light" onClick={() => { setUnsubscribeId(null); setReason(''); }}>Cancelar</button>
+              <button className="btn-primary" onClick={handleDesinscribir}>Enviar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

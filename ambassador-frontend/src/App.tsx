@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import ServerError from './pages/ServerError';
 import ActivitiesView from './pages/ActivitiesView';
 import AdminDashboard from './pages/AdminDashboard';
+import CoursesView from './pages/CoursesView';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<Navigate to="actividades" replace />} />
             <Route path="actividades" element={<ActivitiesView />} />
+            <Route path="cursos" element={<CoursesView />} />
             <Route path="profile" element={<Profile />} />
             <Route element={<ProtectedRoute allowedRoles={["admin", "coordinador"]} />}>
               <Route path="admin" element={<AdminDashboard />} />

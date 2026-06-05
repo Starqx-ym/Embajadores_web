@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock, Trophy } from 'lucide-react';
+import { Clock, Trophy } from 'lucide-react';
 import api from '../config/axiosConfig';
 
 interface Actividad {
@@ -30,6 +30,8 @@ export default function StudentDashboard() {
   const [ranking, setRanking] = useState<RankingUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [unsubscribeId, setUnsubscribeId] = useState<number | null>(null);
+  const [reason, setReason] = useState('');
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -68,6 +70,20 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleDesinscribir = async () => {
+    if (!unsubscribeId) return;
+
+    try {
+      await api.post(`/actividades/${unsubscribeId}/desinscribir`, { reason }, { headers });
+      setMessage('Desinscripcion enviada. El coordinador recibira el aviso en su buzon.');
+      setUnsubscribeId(null);
+      setReason('');
+      cargar();
+    } catch (err: any) {
+      setMessage(err?.response?.data?.error || 'No se pudo registrar la desinscripcion.');
+    }
+  };
+
   return (
     <div className="content-grid">
       <section className="panel-span">
@@ -100,13 +116,19 @@ export default function StudentDashboard() {
                     <span><Clock size={15} /> {act.fecha_evento ? new Date(act.fecha_evento).toLocaleDateString() : 'Fecha por definir'}</span>
                     <span>Cupos: {cupos}</span>
                   </div>
-                  <button
-                    className="btn-primary"
-                    onClick={() => handleInscribir(act.id)}
-                    disabled={enrolled || cupos <= 0}
-                  >
-                    {enrolled ? <><CheckCircle2 size={17} /> Inscrito</> : 'Inscribirse'}
-                  </button>
+                  {enrolled ? (
+                    <button className="btn-secondary-light" onClick={() => setUnsubscribeId(act.id)}>
+                      Desinscribirse
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-primary"
+                      onClick={() => handleInscribir(act.id)}
+                      disabled={cupos <= 0}
+                    >
+                      Inscribirse
+                    </button>
+                  )}
                 </article>
               );
             })}
@@ -131,6 +153,20 @@ export default function StudentDashboard() {
           ))}
         </div>
       </aside>
+
+      {unsubscribeId && (
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2>Motivo de desinscripcion</h2>
+            <p className="muted">Este motivo llegara al buzon del coordinador.</p>
+            <textarea className="auth-input text-area" value={reason} onChange={event => setReason(event.target.value)} placeholder="Explica brevemente por que no podras asistir" />
+            <div className="modal-actions">
+              <button className="btn-secondary-light" onClick={() => { setUnsubscribeId(null); setReason(''); }}>Cancelar</button>
+              <button className="btn-primary" onClick={handleDesinscribir}>Enviar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

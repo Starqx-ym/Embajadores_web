@@ -127,11 +127,11 @@ export const activityController = {
       await client.query('BEGIN');
 
       const existing = await client.query(
-        'SELECT id FROM public.activity_enrollments WHERE user_id = $1 AND actividad_id = $2',
+        'SELECT id, status FROM public.activity_enrollments WHERE user_id = $1 AND actividad_id = $2',
         [userId, id]
       );
 
-      if (existing.rowCount && existing.rowCount > 0) {
+      if (existing.rowCount && existing.rowCount > 0 && existing.rows[0].status === 'inscrito') {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Ya estas inscrito en esta actividad.' });
       }
@@ -149,11 +149,23 @@ export const activityController = {
         return res.status(400).json({ error: 'No hay cupos disponibles para esta actividad.' });
       }
 
-      await client.query(
-        `INSERT INTO public.activity_enrollments (user_id, actividad_id)
-         VALUES ($1, $2)`,
-        [userId, id]
-      );
+      if (existing.rowCount && existing.rowCount > 0) {
+        await client.query(
+          `UPDATE public.activity_enrollments
+           SET status = 'inscrito',
+               unsubscribe_reason = NULL,
+               unsubscribed_at = NULL,
+               updated_at = NOW()
+           WHERE id = $1`,
+          [existing.rows[0].id]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO public.activity_enrollments (user_id, actividad_id)
+           VALUES ($1, $2)`,
+          [userId, id]
+        );
+      }
 
       await client.query('COMMIT');
       return res.status(200).json({ message: 'Inscripcion realizada correctamente.' });
@@ -161,6 +173,75 @@ export const activityController = {
       await client.query('ROLLBACK');
       console.error('Enroll error', error);
       return res.status(500).json({ error: 'Error al procesar la inscripcion.' });
+    } finally {
+      client.release();
+    }
+  },
+
+  unsubscribe: async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    const reason = String(req.body.reason || '').trim();
+    if (!userId) return res.status(401).json({ error: 'Usuario no autenticado.' });
+    if (reason.length < 8) return res.status(400).json({ error: 'Indica un motivo de al menos 8 caracteres.' });
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const enrollment = await client.query(
+        `SELECT ae.id, ae.status, COALESCE(a.nombre, a.titulo) AS actividad, COALESCE(a.puntos, a.puntos_otorgados, 0) AS puntos
+         FROM public.activity_enrollments ae
+         JOIN public.actividades a ON a.id = ae.actividad_id
+         WHERE ae.user_id = $1 AND ae.actividad_id = $2`,
+        [userId, id]
+      );
+
+      if (enrollment.rowCount === 0 || enrollment.rows[0].status !== 'inscrito') {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'No tienes una inscripcion activa en esta actividad.' });
+      }
+
+      const activityPoints = Number(enrollment.rows[0].puntos || 0);
+
+      await client.query(
+        `UPDATE public.activity_enrollments
+         SET status = 'desinscrito',
+             unsubscribe_reason = $1,
+             unsubscribed_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $2`,
+        [reason, enrollment.rows[0].id]
+      );
+
+      await client.query(
+        `UPDATE public.actividades
+         SET cupos_disponibles = cupos_disponibles + 1
+         WHERE id = $1`,
+        [id]
+      );
+
+      await client.query(
+        `INSERT INTO public.user_points (user_id, points)
+         VALUES ($1, 0)
+         ON CONFLICT (user_id)
+         DO UPDATE SET points = GREATEST(public.user_points.points - $2, 0), updated_at = NOW()`,
+        [userId, activityPoints]
+      );
+
+      await client.query(
+        `INSERT INTO public.coordinator_notifications (user_id, actividad_id, type, message, reason)
+         VALUES ($1, $2, 'desinscripcion', $3, $4)`,
+        [userId, id, `Un embajador se desinscribio de ${enrollment.rows[0].actividad}.`, reason]
+      );
+
+      await client.query('COMMIT');
+      return res.status(200).json({ message: 'Desinscripcion registrada correctamente.' });
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('Unsubscribe error', error);
+      return res.status(500).json({ error: error.message || 'Error al procesar la desinscripcion.' });
     } finally {
       client.release();
     }
