@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "test": "jest --runInBand --detectOpenHandles",
     "stress": "node scripts/stress-test.js",
+    "stress:k6": "k6 run scripts/k6-realistic.js",
     "db:backup": "node backup.js"
   },
   "keywords": [],
