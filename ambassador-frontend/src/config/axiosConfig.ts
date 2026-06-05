@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // Tu URL de backend
+  baseURL: '/api', // Usar ruta relativa para producción detrás de Nginx
 });
 
 // Interceptor de respuestas para capturar caídas de servidor de forma global
