@@ -29,11 +29,27 @@ interface NotificationRow {
   created_at: string;
 }
 
+interface CourseRow {
+  id: number;
+  title: string;
+  description?: string;
+  cost_points: number;
+  provider?: string;
+  redeemed?: boolean;
+}
+
 export default function AdminDashboard() {
-  const [tab, setTab] = useState<'actividades' | 'usuarios' | 'puntos' | 'buzon'>('actividades');
+  const [tab, setTab] = useState<'actividades' | 'usuarios' | 'puntos' | 'cursos' | 'buzon'>('actividades');
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [usuarios, setUsuarios] = useState<UserRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+  const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [courseForm, setCourseForm] = useState({
+    title: '',
+    description: '',
+    cost_points: 80,
+    provider: 'Embajadores'
+  });
   const [selectedUser, setSelectedUser] = useState('');
   const [points, setPoints] = useState(10);
   const [notice, setNotice] = useState<string | null>(null);
@@ -59,6 +75,9 @@ export default function AdminDashboard() {
 
     const notificationsRes = await api.get('/users/notifications', { headers });
     setNotifications(Array.isArray(notificationsRes.data) ? notificationsRes.data : []);
+
+    const coursesRes = await api.get('/courses', { headers });
+    setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
   };
 
   useEffect(() => { cargar().catch(console.error); }, []);
@@ -91,6 +110,13 @@ export default function AdminDashboard() {
     cargar();
   };
 
+  const createCourse = async () => {
+    await api.post('/courses', courseForm, { headers });
+    setNotice('Curso agregado para embajadores.');
+    setCourseForm({ title: '', description: '', cost_points: 80, provider: 'Embajadores' });
+    cargar();
+  };
+
   return (
     <div className="admin-page">
       <div className="card-grid">
@@ -103,6 +129,7 @@ export default function AdminDashboard() {
         <button className={tab === 'actividades' ? 'active' : ''} onClick={() => setTab('actividades')}>Actividades</button>
         {isAdmin && <button className={tab === 'usuarios' ? 'active' : ''} onClick={() => setTab('usuarios')}>Usuarios</button>}
         <button className={tab === 'puntos' ? 'active' : ''} onClick={() => setTab('puntos')}>Puntos</button>
+        <button className={tab === 'cursos' ? 'active' : ''} onClick={() => setTab('cursos')}>Cursos</button>
         <button className={tab === 'buzon' ? 'active' : ''} onClick={() => setTab('buzon')}>Buzon</button>
       </div>
 
@@ -161,6 +188,31 @@ export default function AdminDashboard() {
             </select>
             <input className="auth-input" type="number" value={points} onChange={event => setPoints(Number(event.target.value))} />
             <button className="btn-primary" onClick={awardPoints}>Asignar</button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'cursos' && (
+        <div className="section-card">
+          <h2>Agregar cursos para embajadores</h2>
+          <p className="muted">Admin y coordinador pueden publicar cursos canjeables con puntos.</p>
+          <div className="form-grid" style={{ marginTop: 16 }}>
+            <input className="auth-input" placeholder="Titulo del curso" value={courseForm.title} onChange={event => setCourseForm(prev => ({ ...prev, title: event.target.value }))} />
+            <input className="auth-input" placeholder="Proveedor" value={courseForm.provider} onChange={event => setCourseForm(prev => ({ ...prev, provider: event.target.value }))} />
+            <input className="auth-input" type="number" placeholder="Costo en puntos" value={courseForm.cost_points} onChange={event => setCourseForm(prev => ({ ...prev, cost_points: Number(event.target.value) }))} />
+            <button className="btn-primary" onClick={createCourse}>Agregar curso</button>
+          </div>
+          <textarea className="auth-input text-area" style={{ marginTop: 12 }} placeholder="Descripcion del curso" value={courseForm.description} onChange={event => setCourseForm(prev => ({ ...prev, description: event.target.value }))} />
+
+          <div className="course-grid">
+            {courses.length === 0 ? <p className="muted">Aun no hay cursos publicados.</p> : courses.map(course => (
+              <article key={course.id} className="course-card">
+                <span className="badge-soft">{course.provider || 'Embajadores'}</span>
+                <h3>{course.title}</h3>
+                <p>{course.description || 'Sin descripcion.'}</p>
+                <strong>{course.cost_points} pts</strong>
+              </article>
+            ))}
           </div>
         </div>
       )}

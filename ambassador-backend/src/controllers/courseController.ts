@@ -2,6 +2,28 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 
 export const courseController = {
+  create: async (req: Request, res: Response) => {
+    const { title, description, cost_points, provider, status } = req.body;
+
+    if (!title || !Number.isInteger(Number(cost_points)) || Number(cost_points) < 0) {
+      return res.status(400).json({ error: 'Titulo y costo en puntos son requeridos.' });
+    }
+
+    try {
+      const result = await pool.query(
+        `INSERT INTO public.courses (title, description, cost_points, provider, status)
+         VALUES ($1, $2, $3, $4, COALESCE($5, 'activo'))
+         RETURNING *`,
+        [title, description || '', Number(cost_points), provider || 'Embajadores', status || 'activo']
+      );
+
+      return res.status(201).json(result.rows[0]);
+    } catch (error: any) {
+      console.error('Create course error', error);
+      return res.status(500).json({ error: error.message || 'Error al crear curso.' });
+    }
+  },
+
   list: async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
@@ -60,6 +82,16 @@ export const courseController = {
          SET points = points - $1, updated_at = NOW()
          WHERE user_id = $2`,
         [course.cost_points, userId]
+      );
+
+      await client.query(
+        `INSERT INTO public.coordinator_notifications (user_id, type, message, reason)
+         VALUES ($1, 'canje_curso', $2, $3)`,
+        [
+          userId,
+          `Un embajador canjeo el curso ${course.title}.`,
+          `Curso canjeado por ${course.cost_points} puntos.`
+        ]
       );
 
       await client.query('COMMIT');
