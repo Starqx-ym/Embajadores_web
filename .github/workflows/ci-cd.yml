@@ -47,12 +47,22 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - name: Validate deploy secrets
+        run: |
+          if [ -z "${{ secrets.AWS_SSH_KEY }}" ]; then
+            echo "Falta configurar el secret AWS_SSH_KEY con el contenido completo de llave1.pem"
+            exit 1
+          fi
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.AWS_HOST }}
+          host: 18.208.221.134
           username: ubuntu
           key: ${{ secrets.AWS_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 20m
           script: |
             set -e
             cd ~/Embajadores_web
