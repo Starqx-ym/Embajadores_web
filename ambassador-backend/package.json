@@ -11,6 +11,7 @@
     "stress": "node scripts/stress-test.js",
     "stress:k6": "k6 run scripts/k6-realistic.js",
     "stress:k6:create-activities": "k6 run scripts/k6-create-activities.js",
+    "stress:k6:error-create-courses": "k6 run scripts/k6-error-create-courses.js",
     "db:backup": "node backup.js"
   },
   "keywords": [],
